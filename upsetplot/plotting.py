@@ -373,6 +373,11 @@ class UpSet:
         of the intersection relative to the total dataset.
         This may be applied with or without show_counts.
 
+    intersection_label_rotation: str
+        rotation angle of counts or percentages if shown.
+    logscale: bool
+        whether to log-scale totals and interseactions.
+
         .. versionadded:: 0.4
     """
     _default_figsize = (10, 6)
@@ -385,7 +390,8 @@ class UpSet:
                  facecolor='auto', other_dots_color=.18, shading_color=.05,
                  with_lines=True, element_size=32,
                  intersection_plot_elements=6, totals_plot_elements=2,
-                 show_counts='', show_percentages=False):
+                 show_counts='', show_percentages=False,
+                 intersection_label_rotation=0, logscale=False):
 
         self._horizontal = orientation == 'horizontal'
         self._reorient = _identity if self._horizontal else _transpose
@@ -411,6 +417,8 @@ class UpSet:
             self._subset_plots.pop()
         self._show_counts = show_counts
         self._show_percentages = show_percentages
+        self._label_rotation = intersection_label_rotation
+        self._logscale = logscale
 
         (self.total, self._df, self.intersections,
          self.totals) = _process_data(data,
@@ -503,7 +511,10 @@ class UpSet:
         ax.set_autoscalex_on(False)
         data_df = pd.DataFrame(data)
         if self._horizontal:
+            ax.set_yscale('log' if self._logscale else 'linear')
             data_df = data_df.loc[:, ::-1]  # reverse: top row is top of stack
+        else:
+            ax.set_xscale('log' if self._logscale else 'linear')
 
         # TODO: colors should be broadcastable to data_df shape
         if callable(colors):
@@ -897,7 +908,8 @@ class UpSet:
                 ax.text(rect.get_x() + rect.get_width() * .5,
                         height + margin,
                         fmt % make_args(height),
-                        ha='center', va='bottom')
+                        ha='center' if not self._label_rotation else 'left',
+                        va='bottom', rotation=self._label_rotation)
         else:
             raise NotImplementedError('unhandled where: %r' % where)
 
@@ -911,14 +923,20 @@ class UpSet:
         self._label_sizes(ax, rects, 'left' if self._horizontal else 'top')
 
         max_total = self.totals.max()
+        print(max_total)
         if self._horizontal:
-            orig_ax.set_xlim(max_total, 0)
+            # orig_ax.set_xlim(max_total, 1)
+            ax.set_xlim(max_total, 1)
+            ax.set_xscale('log' if self._logscale else 'linear')
+        else:
+            ax.set_yscale('log' if self._logscale else 'linear')
         for x in ['top', 'left', 'right']:
             ax.spines[self._reorient(x)].set_visible(False)
         ax.yaxis.set_visible(False)
-        ax.xaxis.grid(True)
+        ax.xaxis.grid(False)
         ax.yaxis.grid(False)
         ax.patch.set_visible(False)
+        
 
     def plot_shading(self, ax):
         # alternating row shading (XXX: use add_patch(Rectangle)?)
