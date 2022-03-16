@@ -224,7 +224,7 @@ class UpSet:
         of the intersection relative to the total dataset.
         This may be applied with or without show_counts.
 
-    intersection_label_rotation: str
+    intersection_label_rotation: float
         rotation angle of counts or percentages if shown.
     logscale: bool
         whether to log-scale totals and interseactions.
